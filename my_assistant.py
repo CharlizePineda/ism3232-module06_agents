@@ -8,11 +8,12 @@ HANDSOFF_WORDS = ["reschedule", "cancel", "change", "emergency"]
 class AppointmentAssistant:
     """A mock appointment assistant. Its replies come from simple rules, not from AI."""
 
-    def __init__(self, name, instructions, my_tool):
-        """Set up one assistant with its own name, instructions, tool, and history."""
+    def __init__(self, name, instructions, my_tool, model):
+        """Set up one assistant with its own name, instructions, tool, model, and history."""
         self.name = name
         self.instructions = instructions
         self.my_tool = my_tool
+        self.model = model
         self.history = []
         self.selected_day = None
 
@@ -24,7 +25,7 @@ class AppointmentAssistant:
         return reply
 
     def choose_reply(self, user_message):
-        """Choose a reply with keyword rules. This is the mock part."""
+        """Use a rule when one applies. Otherwise ask the model."""
         text = user_message.lower()
         appointment_words = [
             "appointment",
@@ -48,11 +49,14 @@ class AppointmentAssistant:
             or self.my_tool.find_day(text) is not None
         ):
             return self.appointment_reply(user_message)
-        if "hello" in text:
-            return (
-                f"Hello! I'm {self.name}. I can help you book or manage appointments."
-            )
-        return "I'm not sure how to help with that. I can assist with booking appointments."
+        return self.model_reply()
+
+    def model_reply(self):
+        """Ask the model for a reply. Give a safe answer if the model has none."""
+        reply = self.model.reply(self.instructions, self.history)
+        if reply is None:
+            return "Sorry, I can't answer that right now. Please try again in a moment."
+        return reply
 
     def needs_human(self, text):
         """Return True if the message is about something a person must handle."""
